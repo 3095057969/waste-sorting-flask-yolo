@@ -2,6 +2,7 @@
 import base64
 import io
 import threading
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -204,6 +205,48 @@ class UploadTests(unittest.TestCase):
 
 
 class DetectorTests(unittest.TestCase):
+    def test_pt_loading_enables_restricted_checkpoint_loading(self):
+        import ultralytics.nn.tasks as tasks
+
+        with tempfile.TemporaryDirectory() as directory:
+            model_path = Path(directory) / "model.pt"
+            model_path.write_bytes(b"test checkpoint")
+            model = SimpleNamespace()
+
+            def create_model(_path):
+                self.assertTrue(tasks.SAFE_LOAD)
+                return model
+
+            detector = WasteDetector(model_path)
+            with patch.object(tasks, "SAFE_LOAD", False), patch("ultralytics.YOLO", side_effect=create_model):
+                detector.load_model()
+                self.assertTrue(tasks.SAFE_LOAD)
+
+    def test_pt_loading_refuses_when_restricted_loader_is_unavailable(self):
+        import ultralytics.nn.tasks as tasks
+
+        with tempfile.TemporaryDirectory() as directory:
+            model_path = Path(directory) / "model.pt"
+            model_path.write_bytes(b"test checkpoint")
+            detector = WasteDetector(model_path)
+            with patch.object(tasks._SafeLoad, "SUPPORTED", False), patch("ultralytics.YOLO") as create_model:
+                with self.assertRaises(RuntimeError):
+                    detector.load_model()
+                create_model.assert_not_called()
+
+    def test_pt_loading_registers_dill_checkpoint_helper(self):
+        import dill._dill as dill_impl
+
+        with tempfile.TemporaryDirectory() as directory:
+            model_path = Path(directory) / "model.pt"
+            model_path.write_bytes(b"test checkpoint")
+            detector = WasteDetector(model_path)
+            with patch("torch.serialization.add_safe_globals") as register:
+                with patch("ultralytics.YOLO", return_value=SimpleNamespace()):
+                    detector.load_model()
+            registered = register.call_args.args[0]
+            self.assertIn(dill_impl._load_type, registered)
+
     def test_annotation_uses_chinese_classes_and_releases_prediction(self):
         boxes = SimpleNamespace(xyxy=np.array([[10, 8, 60, 50]]),
                                 conf=np.array([0.88]), cls=np.array([2]))

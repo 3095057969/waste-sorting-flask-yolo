@@ -14,7 +14,7 @@ Windows 下双击 `启动网页.bat`，随后访问 <http://127.0.0.1:5000>。
 .\.venv\Scripts\python.exe app.py
 ```
 
-首次在其他电脑配置环境时，使用 Python 3.10 或更新版本，并安装依赖。
+首次在其他电脑配置环境时，使用 Python 3.10 或更新版本，并安装依赖。项目要求 PyTorch 2.6 或更新版本、Ultralytics 8.4.208 或更新版本，确保 `.pt` 检查点使用受限的 `weights_only` 加载。
 
 ```powershell
 python -m venv .venv

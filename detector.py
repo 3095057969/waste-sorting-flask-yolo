@@ -52,6 +52,18 @@ class WasteDetector:
         path = Path(model_path) if model_path is not None else self.model_path
         if not path.is_file():
             raise FileNotFoundError(path)
+        from ultralytics.nn import tasks
+
+        if path.suffix.lower() == ".pt":
+            safe_loader = getattr(tasks, "_SafeLoad", None)
+            if safe_loader is None or not getattr(safe_loader, "SUPPORTED", False):
+                raise RuntimeError("当前 PyTorch 与 Ultralytics 环境不支持安全的 .pt 模型加载，请更新依赖。")
+            from dill._dill import _load_type
+            import torch
+
+            torch.serialization.add_safe_globals([_load_type])
+            tasks.SAFE_LOAD = True
+
         from ultralytics import YOLO
 
         with self._lock:
