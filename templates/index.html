@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174936">
+  <title>垃圾分类识别 · YOLO 视觉检测</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='retry-delay.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="垃圾分类识别首页"><span class="brand-mark" aria-hidden="true">↻</span><span>垃圾分类识别<span class="brand-caption">WASTE SORTING</span></span></a>
+    <span class="model-tag"><span class="status-dot"></span>YOLOv8 四分类模型</span>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">智能视觉检测</p><h1>看见垃圾，识别分类。</h1><p class="subtitle">上传一张图片，查看垃圾位置、分类与置信度。</p></div>
+      <div class="privacy-note"><span aria-hidden="true">⌁</span><div>仅处理当前图片<small>更换图片即清空上次结果</small></div></div>
+    </section>
+    <div id="error-message" class="error-message" role="alert" hidden></div>
+    <section id="model-panel" class="panel model-panel" aria-label="模型选择与加载" data-max-model-bytes="{{ max_model_mb * 1024 * 1024 }}">
+      <div class="model-panel-heading">
+        <div><p class="eyebrow">推理模型</p><h2>选择并加载模型</h2></div>
+        <span id="model-status" class="model-status" data-state="idle" role="status" aria-live="polite">正在检查模型</span>
+      </div>
+      <p id="model-help" class="model-help">未上传自定义模型时，点击“加载模型”使用默认模型。模型加载完成后才能识别图片。</p>
+      <p class="model-limit">支持 .pt 与 .onnx，模型文件最大 {{ max_model_mb }} MB。</p>
+      <div class="model-controls">
+        <button id="model-pt-button" class="secondary-button" type="button">选择 PT 模型并上传</button>
+        <button id="model-onnx-button" class="secondary-button" type="button">选择 ONNX 模型并上传</button>
+        <button id="load-model-button" class="primary-button" type="button">加载模型</button>
+      </div>
+      <input id="pt-model-input" type="file" accept=".pt,application/octet-stream" hidden>
+      <input id="onnx-model-input" type="file" accept=".onnx,application/octet-stream" hidden>
+      <label class="auto-load-control" for="auto-load-model">
+        <input id="auto-load-model" type="checkbox">
+        <span>上传模型后自动加载</span>
+        <small>关闭时，上传后点击“加载模型”生效；默认模型始终手动加载。</small>
+      </label>
+    </section>
+    <section class="workspace" aria-label="图片识别工作区">
+      <div class="panel upload-panel">
+        <div class="panel-heading"><h2>上传图片</h2><span id="upload-status" class="muted">待上传</span></div>
+        <label id="drop-zone" class="drop-zone" for="image-input" tabindex="0" role="button" aria-label="选择或拖入垃圾图片">
+          <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp,image/bmp" hidden>
+          <div id="upload-placeholder" class="upload-placeholder"><span class="upload-icon" aria-hidden="true">↑</span><strong>拖拽图片至此</strong><span>或点击选择本地图片</span><small>JPG / PNG / WEBP / BMP · 最大 {{ max_upload_mb }} MB</small></div>
+          <img id="original-image" class="preview-image" alt="上传图片预览" hidden>
+          <span id="replace-hint" class="replace-hint" hidden>点击更换图片</span>
+        </label>
+        <div class="file-meta"><span id="file-name">尚未选择图片</span><span id="file-size"></span></div>
+        <div class="threshold-control"><label for="confidence">置信度阈值</label><output id="confidence-value" for="confidence">25%</output><input id="confidence" type="range" min="5" max="95" value="25" step="5" aria-describedby="threshold-help"><p id="threshold-help">仅显示高于此阈值的检测目标</p></div>
+        <button id="upload-button" class="primary-button" type="button"><span aria-hidden="true">＋</span><span id="upload-button-text">上传图片并识别</span><span aria-hidden="true">↗</span></button>
+        <p class="memory-note">图片与结果仅在内存中处理，刷新页面后释放。</p>
+      </div>
+      <div class="panel result-panel">
+        <div class="panel-heading"><div class="heading-group"><h2>检测结果</h2><span id="result-status" class="result-status">等待上传</span></div><button id="clear-button" class="text-button" type="button" disabled>清空</button></div>
+        <div id="result-stage" class="result-stage" aria-busy="false">
+          <div id="result-placeholder" class="result-placeholder"><span class="scan-symbol" aria-hidden="true"><i></i></span><strong>识别结果将在这里显示</strong><p>检测框将标出目标位置及垃圾类别</p></div>
+          <img id="result-image" class="result-image" alt="包含中文类别、置信度和检测框的识别结果" hidden>
+          <div id="loading" class="loading" hidden><span class="spinner" aria-hidden="true"></span><strong>正在识别图片</strong><span>本地模型正在处理当前图片</span></div>
+        </div>
+        <div class="result-footer"><span id="result-summary" role="status" aria-live="polite">等待上传图片</span><span id="result-time"></span></div>
+      </div>
+    </section>
+    <section class="category-grid" aria-label="四类垃圾统计">
+      {% for category in categories %}<div class="category-card" style="--category-color: {{ category.color }}"><span class="category-dot"></span><span>{{ category.name }}</span><strong id="count-{{ category.id }}">—</strong><small>个</small></div>{% endfor %}
+    </section>
+    <section id="details-panel" class="panel details-panel" hidden>
+      <div class="panel-heading"><h2>目标明细</h2><span class="muted">编号与图中标注对应</span></div>
+      <div class="table-scroll"><table><thead><tr><th scope="col">目标</th><th scope="col">分类</th><th scope="col">置信度</th><th scope="col">位置坐标 (x₁, y₁, x₂, y₂)</th></tr></thead><tbody id="detection-rows"></tbody></table></div>
+      <p id="no-detections" class="no-detections" hidden>当前阈值下未检测到目标，可降低阈值或更换图片。</p>
+    </section>
+    <footer class="page-footer"><span>Flask + YOLOv8 · 垃圾四类目标检测</span><span>本地推理 · 图片与结果随用随清</span></footer>
+  </main>
+</body>
+</html>
