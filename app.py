@@ -15,7 +15,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 from detector import CATEGORIES, ModelNotLoadedError, WasteDetector
 
-DEFAULT_MODEL = Path(r"D:\毕业设计\垃圾四类检测YOLO\exp-WasteSorting4-500epoch\weights\best.pt")
+DEFAULT_MODEL = Path(__file__).resolve().parent / "best.pt"
 MAX_PIXELS = 25_000_000
 SUPPORTED_FORMATS = {"JPEG", "PNG", "WEBP", "BMP"}
 SUPPORTED_MODEL_SUFFIXES = {".pt", ".onnx"}

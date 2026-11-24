@@ -178,6 +178,14 @@ class UploadTests(unittest.TestCase):
         self.assertIn(b'id="auto-load-model" type="checkbox"', response.data)
         self.assertIn("默认模型始终手动加载".encode(), response.data)
 
+    def test_default_model_path_is_local_to_the_project(self):
+        import os
+        project_root = Path(__file__).resolve().parents[1]
+        with patch.dict(os.environ):
+            os.environ.pop("WASTE_MODEL_PATH", None)
+            app = create_app({"TESTING": True}, DemoDetector(loaded=False))
+        self.assertEqual(Path(app.config["MODEL_PATH"]), project_root / "best.pt")
+
     def test_default_model_is_not_loaded_until_requested(self):
         detector = DemoDetector(loaded=False)
         app = create_app({"TESTING": True}, detector)

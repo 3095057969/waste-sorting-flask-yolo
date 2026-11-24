@@ -32,11 +32,7 @@ python -m venv .venv
 
 上传的模型暂存于系统临时目录，供 Ultralytics 从文件读取。加载新模型或服务退出时会清理暂存文件。上传大小限制为 256 MB。ONNX 推理使用 `onnxruntime` CPU 运行时。
 
-默认权重路径在 `app.py` 的 `DEFAULT_MODEL` 中。
-
-```text
-D:\毕业设计\垃圾四类检测YOLO\exp-WasteSorting4-500epoch\weights\best.pt
-```
+默认权重文件名为 `best.pt`，放在项目根目录即可。模型权重已加入 `.gitignore`，不会被推送到仓库。也可以通过环境变量 `WASTE_MODEL_PATH` 指定 `.pt` 或 `.onnx` 权重。
 
 类别编号沿用数据目录的 `data.yaml`、`classes.txt` 及权重附带的 X-AnyLabeling 配置。
 
