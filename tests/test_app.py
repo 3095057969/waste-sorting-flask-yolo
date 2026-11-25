@@ -11,6 +11,7 @@ from unittest.mock import patch
 import numpy as np
 from PIL import Image
 
+import app as app_module
 from app import create_app, MemoryRequest
 from detector import WasteDetector
 
@@ -202,6 +203,17 @@ class UploadTests(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json)
         self.assertNotIn("internal trace", response.json["error"])
+
+    def test_server_defaults_to_a_lan_host(self):
+        with patch.dict(app_module.os.environ, {}, clear=True), patch.object(app_module.app, "run") as run:
+            app_module.run_server()
+        run.assert_called_once_with(host="0.0.0.0", port=5000, debug=False)
+
+    def test_server_uses_host_and_port_environment(self):
+        with patch.dict(app_module.os.environ, {"HOST": "192.168.1.20", "PORT": "8080"}), \
+                patch.object(app_module.app, "run") as run:
+            app_module.run_server()
+        run.assert_called_once_with(host="192.168.1.20", port=8080, debug=False)
 
 
 class DetectorTests(unittest.TestCase):

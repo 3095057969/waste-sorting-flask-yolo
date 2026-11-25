@@ -19,6 +19,7 @@ env/
 *.pt
 *.onnx
 *.pth
+!best.pt
 
 # Local editor and operating-system files
 .vscode/

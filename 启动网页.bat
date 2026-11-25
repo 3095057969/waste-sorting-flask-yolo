@@ -13,7 +13,9 @@ if errorlevel 1 (
     if errorlevel 1 goto :failed
 )
 echo.
-echo 请在浏览器中打开 http://127.0.0.1:5000
+echo 本机访问地址：http://127.0.0.1:5000
+echo 同一局域网的其他电脑请使用本机 IPv4 地址访问，例如：http://192.168.1.10:5000
+echo 如需修改监听地址或端口，可在启动前设置 HOST 和 PORT 环境变量。
 echo 按 Ctrl+C 停止服务。
 .venv\Scripts\python.exe app.py
 if errorlevel 1 goto :failed
